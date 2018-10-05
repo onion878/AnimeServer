@@ -16,5 +16,5 @@ func main() {
 	r.GET("/getChapter/:pid", func(c *gin.Context) {
 		c.JSON(200, utils.GetChapter(c.Param("pid")))
 	})
-	r.Run(":8000")
+	r.Run(":8060")
 }
