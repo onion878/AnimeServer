@@ -19,5 +19,8 @@ func main() {
 	r.GET("/searchByName/:name", func(c *gin.Context) {
 		c.JSON(200, utils.SearchByName(c.Param("name")))
 	})
+	r.GET("/getByName/:name", func(c *gin.Context) {
+		c.JSON(200, utils.GetByName(c.Param("name")))
+	})
 	r.Run(":8060")
 }

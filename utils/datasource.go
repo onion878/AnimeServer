@@ -18,6 +18,13 @@ func SearchByName(name string) []structs.Index {
 	return list
 }
 
+func GetByName(name string) []structs.Index {
+	var list []structs.Index
+	engine := GetCon()
+	engine.Where("name=?", name).OrderBy("created asc").Find(&list)
+	return list
+}
+
 func GetChapter(pid string) []structs.Chapter {
 	var chapters []structs.Chapter
 	engine := GetCon()
