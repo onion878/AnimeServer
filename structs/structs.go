@@ -29,3 +29,8 @@ type UrlData struct {
 	Label   string `json:"label"`
 	Default string `json:"default"`
 }
+
+type Cookies struct {
+	Id    string `xorm:"not null pk int"`
+	Value string `xorm:"text"`
+}
