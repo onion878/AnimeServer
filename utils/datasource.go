@@ -121,3 +121,18 @@ func DeleteByName(name string) {
 		engine.Exec("DELETE FROM `chapter` WHERE `pid`=?", list[i].Id)
 	}
 }
+
+func JudgeNew(newRow structs.Index) bool {
+	var indexs []structs.Index
+	var index structs.Index
+	engine := GetCon()
+	engine.Where("`index` = 0").Find(&indexs)
+	if len(indexs) == 1 {
+		index = indexs[0]
+	}
+	if index.Name == newRow.Name && index.Chapter == newRow.Chapter {
+		return false
+	} else {
+		return true
+	}
+}

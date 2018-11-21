@@ -7,11 +7,14 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gocolly/colly"
+	"github.com/jasonlvhit/gocron"
 	"strconv"
 	"strings"
 )
 
 const path = "https://anime1.me"
+
+var runing = false
 
 func main() {
 	r := gin.Default()
@@ -31,13 +34,7 @@ func main() {
 	})
 	r.GET("/getAllSource", func(c *gin.Context) {
 		go func() {
-			engine := utils.GetCon()
-			engine.Exec("DROP TABLES IF EXISTS `index`,chapter")
-			engine.CreateTables(new(structs.Cookies))
-			engine.CreateTables(new(structs.Index))
-			engine.CreateTables(new(structs.Chapter))
-			getMenu()
-			getAllIndex()
+			getAllSource()
 		}()
 		c.JSON(200, gin.H{
 			"success": true,
@@ -54,7 +51,51 @@ func main() {
 			"msg":     "获取成功!",
 		})
 	})
+	gocron.Every(1).Second().Do(taskWithParams, 1, "hello")
+	<-gocron.Start()
 	r.Run(":8060")
+}
+
+func taskWithParams(a int, b string) {
+	if !runing {
+		getFirstMenu()
+	}
+}
+
+func getFirstMenu() {
+	c := colly.NewCollector()
+	flag := false
+	c.OnHTML(".entry-content table tbody tr", func(e *colly.HTMLElement) {
+		if !flag {
+			name := e.DOM.Find(".column-1 a").Text()
+			chapter := e.DOM.Find(".column-2").Text()
+			var newRow = new(structs.Index)
+			newRow.Name = name
+			newRow.Chapter = chapter
+			if utils.JudgeNew(*newRow) {
+				runing = true
+				getAllSource()
+			}
+		}
+		flag = true
+	})
+
+	c.OnRequest(func(r *colly.Request) {
+		r.Headers.Set("cookie", utils.GetCookie())
+		fmt.Println("Visiting", r.URL)
+	})
+	c.Visit(path)
+}
+
+func getAllSource() {
+	engine := utils.GetCon()
+	engine.Exec("DROP TABLES IF EXISTS `index`,chapter")
+	engine.CreateTables(new(structs.Cookies))
+	engine.CreateTables(new(structs.Index))
+	engine.CreateTables(new(structs.Chapter))
+	getMenu()
+	getAllIndex()
+	runing = false
 }
 
 func getOneSource(n string) {
