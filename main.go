@@ -51,8 +51,10 @@ func main() {
 			"msg":     "获取成功!",
 		})
 	})
-	gocron.Every(1).Second().Do(taskWithParams, 1, "hello")
-	<-gocron.Start()
+	go func() {
+		gocron.Every(1).Second().Do(taskWithParams, 1, "hello")
+		<-gocron.Start()
+	}()
 	r.Run(":8060")
 }
 
