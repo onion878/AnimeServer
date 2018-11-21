@@ -29,6 +29,7 @@ func StartPool() {
 	engine.SetMaxOpenConns(5)
 	//名称映射规则主要负责结构体名称到表名和结构体field到表字段的名称映射
 	engine.SetTableMapper(core.SnakeMapper{})
+	engine.CreateTables(new(structs.Cookies))
 	engine.CreateTables(new(structs.Index))
 	engine.CreateTables(new(structs.Chapter))
 	connect = engine
