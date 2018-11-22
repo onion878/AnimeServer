@@ -78,6 +78,7 @@ func getFirstMenu() {
 				getAllSource()
 			}
 		}
+		flag = true
 	})
 
 	c.OnRequest(func(r *colly.Request) {
