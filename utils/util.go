@@ -2,7 +2,9 @@ package utils
 
 import (
 	"bytes"
+	"crypto/tls"
 	"github.com/satori/go.uuid"
+	"gopkg.in/gomail.v2"
 	"math/rand"
 	"strings"
 	"time"
@@ -48,4 +50,19 @@ func NewKeyId() string {
 		return id.String()
 	}
 	return "创建失败!"
+}
+
+func SendMail(msg string) {
+	d := gomail.NewDialer("smtp.qq.com", 587, "genaretor@qq.com", "nbvlluxakyzgebji")
+	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	m := gomail.NewMessage()
+	m.SetHeader("From", "genaretor@qq.com")
+	m.SetHeader("To", "2419186601@qq.com")
+	m.SetHeader("Subject", "资源获取通知!")
+	m.SetBody("text/html", "<b>获取通知</b><br><i>"+msg+"</i>!")
+
+	// Send emails using d.
+	if err := d.DialAndSend(m); err != nil {
+		panic(err)
+	}
 }

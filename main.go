@@ -75,11 +75,9 @@ func getFirstMenu() {
 			newRow.Name = name
 			newRow.Chapter = chapter
 			if utils.JudgeNew(*newRow) {
-				runing = true
 				getAllSource()
 			}
 		}
-		flag = true
 	})
 
 	c.OnRequest(func(r *colly.Request) {
@@ -90,6 +88,10 @@ func getFirstMenu() {
 }
 
 func getAllSource() {
+	runing = true
+	go func() {
+		utils.SendMail("开始获取资源!")
+	}()
 	engine := utils.GetCon()
 	engine.Exec("DROP TABLES IF EXISTS `index`,chapter")
 	engine.CreateTables(new(structs.Cookies))
@@ -97,6 +99,9 @@ func getAllSource() {
 	engine.CreateTables(new(structs.Chapter))
 	getMenu()
 	getAllIndex()
+	go func() {
+		utils.SendMail("获取资源完成!")
+	}()
 	runing = false
 }
 
