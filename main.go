@@ -33,13 +33,20 @@ func main() {
 		c.JSON(200, utils.GetByName(c.Param("name")))
 	})
 	r.GET("/getAllSource", func(c *gin.Context) {
-		go func() {
-			getAllSource()
-		}()
-		c.JSON(200, gin.H{
-			"success": true,
-			"msg":     "获取所有资源中...",
-		})
+		if !runing {
+			go func() {
+				getAllSource()
+			}()
+			c.JSON(200, gin.H{
+				"success": true,
+				"msg":     "获取所有资源中...",
+			})
+		} else {
+			c.JSON(200, gin.H{
+				"success": true,
+				"msg":     "正在获取所有资源中,请稍等一下!",
+			})
+		}
 	})
 	r.GET("/getOneSource/:name", func(c *gin.Context) {
 		name := c.Param("name")
