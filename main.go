@@ -5,9 +5,12 @@ import (
 	"./utils"
 	"encoding/json"
 	"fmt"
+	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
 	"github.com/gocolly/colly"
 	"github.com/jasonlvhit/gocron"
+	"io"
+	"net/http"
 	"strconv"
 	"strings"
 )
@@ -219,6 +222,8 @@ func getChapterUrl(url string, name string, pid string, num int) {
 				}
 				if len(file) > 0 {
 					utils.SaveChapter(name, pid, file, num)
+				} else {
+					getMpdChapter(e.Request.URL.Query().Get("dash"), name, pid, num)
 				}
 			}
 		} else {
@@ -243,4 +248,29 @@ func getChapterUrl(url string, name string, pid string, num int) {
 		fmt.Println("Visiting", r.URL)
 	})
 	c.Visit(url)
+}
+
+// update time: 2018-12-06
+func getMpdChapter(url string, name string, pid string, num int) {
+	r, err := http.Get(url)
+	if err == nil {
+		doc, e := goquery.NewDocumentFromReader(io.Reader(r.Body))
+		if e == nil {
+			var file = ""
+			flag := false
+			p := doc.Find("representation")
+			p.Each(func(i int, s *goquery.Selection) {
+				band, ok := s.Attr("fbqualityclass")
+				if ok && strings.Trim(band, "\n") == "hd" {
+					flag = true
+					file = s.Find("baseurl").Eq(0).Text()
+				}
+			})
+			if !flag {
+				file = p.Eq(0).Find("BaseURL").Eq(0).Text()
+			}
+			utils.SaveChapter(name, pid, file, num)
+		}
+	}
+
 }
