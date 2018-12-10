@@ -4,14 +4,7 @@ go:
   - "1.11.x"
 
 before_script:
-  - go get -u github.com/gocolly/colly/...
-  - go get -u github.com/gin-gonic/gin
-  - go get github.com/gopherjs/jquery
-  - go get github.com/jasonlvhit/gocron
-  - go get github.com/go-sql-driver/mysql
-  - go get github.com/go-xorm/xorm
-  - go get github.com/satori/go.uuid
-  - go get gopkg.in/gomail.v2
+  - go vet ./...
 
 script:
   - go run main.go
