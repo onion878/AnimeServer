@@ -8,7 +8,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
 	"github.com/gocolly/colly"
-	"github.com/jasonlvhit/gocron"
 	"io"
 	"net/http"
 	"os"
@@ -22,11 +21,11 @@ var runing = false
 
 func main() {
 	r := gin.Default()
-	utils.StartPool()
+	//utils.StartPool()
 	r.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"success": true,
-			"msg":     os.Getenv("url"),
+			"msg":     os.Getenv("mysql.url"),
 		})
 	})
 	r.GET("/getIndex/:page", func(c *gin.Context) {
@@ -68,10 +67,10 @@ func main() {
 			"msg":     "获取成功!",
 		})
 	})
-	go func() {
-		gocron.Every(1).Second().Do(taskWithParams, 1, "hello")
-		<-gocron.Start()
-	}()
+	//go func() {
+	//	gocron.Every(1).Second().Do(taskWithParams, 1, "hello")
+	//	<-gocron.Start()
+	//}()
 	r.Run(":8060")
 }
 
