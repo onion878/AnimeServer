@@ -12,9 +12,9 @@ import (
 var connect *xorm.Engine
 
 func StartPool() {
-	url := os.Getenv("mysql.url")
-	passowrd := os.Getenv("mysql.password")
-	username := os.Getenv("mysql.username")
+	url := os.Getenv("mysql_url")
+	passowrd := os.Getenv("mysql_password")
+	username := os.Getenv("mysql_username")
 	if url == "" {
 		url = "localhost"
 	}
