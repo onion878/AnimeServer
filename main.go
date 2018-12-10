@@ -11,6 +11,7 @@ import (
 	"github.com/jasonlvhit/gocron"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -22,6 +23,12 @@ var runing = false
 func main() {
 	r := gin.Default()
 	utils.StartPool()
+	r.GET("/test", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"success": true,
+			"msg":     os.Getenv("url"),
+		})
+	})
 	r.GET("/getIndex/:page", func(c *gin.Context) {
 		page, _ := strconv.Atoi(c.Param("page"))
 		c.JSON(200, utils.GetIndex(page))

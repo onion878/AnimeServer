@@ -1,0 +1,10 @@
+language: go
+
+go:
+  - "1.11.x"
+
+before_script:
+  - go vet ./...
+
+script:
+  - go run main.go
