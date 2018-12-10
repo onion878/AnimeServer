@@ -6,12 +6,25 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"os"
 )
 
 var connect *xorm.Engine
 
 func StartPool() {
-	engine, err := xorm.NewEngine("mysql", "onion:1234@tcp(localhost:3306)/anime?charset=utf8")
+	url := os.Getenv("mysql.url")
+	passowrd := os.Getenv("mysql.password")
+	username := os.Getenv("mysql.username")
+	if url == "" {
+		url = "localhost"
+	}
+	if passowrd == "" {
+		passowrd = "1234"
+	}
+	if username == "" {
+		username = "onion"
+	}
+	engine, err := xorm.NewEngine("mysql", username+":"+passowrd+"@tcp("+url+":3306)/anime?charset=utf8")
 	if err != nil {
 		fmt.Println(err)
 		return
