@@ -111,7 +111,13 @@ func getAllSource() {
 	getMenu()
 	getAllIndex()
 	go func() {
-		utils.SendMail("获取资源完成!")
+		var list = utils.GetIndex(0)
+		html := "<ul><li>" + "</li>"
+		for i := 0; i < len(list); i++ {
+			html = html + "<li>" + list[i].Name + "(" + list[i].Chapter + ")</li>"
+		}
+
+		utils.SendMail(html + "</ul>")
 	}()
 	runing = false
 }
