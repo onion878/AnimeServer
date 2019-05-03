@@ -6,25 +6,16 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
-	"os"
 )
 
 var connect *xorm.Engine
 
 func StartPool() {
-	url := os.Getenv("mysql_url")
-	passowrd := os.Getenv("mysql_password")
-	username := os.Getenv("mysql_username")
-	if url == "" {
-		url = "localhost"
+	props, err := ReadPropertiesFile("properties")
+	if err != nil {
+		fmt.Println("Error while reading properties file")
 	}
-	if passowrd == "" {
-		passowrd = "1234"
-	}
-	if username == "" {
-		username = "onion"
-	}
-	engine, err := xorm.NewEngine("mysql", username+":"+passowrd+"@tcp("+url+":3306)/anime?charset=utf8")
+	engine, err := xorm.NewEngine("mysql", props["username"]+":"+props["password"]+"@tcp("+props["url"]+":3306)/"+props["database"]+"?charset=utf8")
 	if err != nil {
 		fmt.Println(err)
 		return
