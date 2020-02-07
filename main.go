@@ -1,22 +1,18 @@
 package main
 
 import (
-	"./service"
 	"./structs"
 	"./utils"
 	"encoding/json"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
-	jwt "github.com/appleboy/gin-jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/gocolly/colly"
 	"github.com/jasonlvhit/gocron"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const path = "https://anime1.me"
@@ -73,138 +69,6 @@ func main() {
 		})
 	})
 
-	// the jwt middleware
-	authMiddleware, err := jwt.New(&jwt.GinJWTMiddleware{
-		Realm:       "test zone",
-		Key:         []byte("secret key"),
-		Timeout:     time.Hour,
-		MaxRefresh:  time.Hour,
-		IdentityKey: identityKey,
-		PayloadFunc: func(data interface{}) jwt.MapClaims {
-			if v, ok := data.(*User); ok {
-				return jwt.MapClaims{
-					identityKey: v.UserName,
-				}
-			}
-			return jwt.MapClaims{}
-		},
-		IdentityHandler: func(c *gin.Context) interface{} {
-			claims := jwt.ExtractClaims(c)
-			return &User{
-				UserName: claims["id"].(string),
-			}
-		},
-		Authenticator: func(c *gin.Context) (interface{}, error) {
-			var loginVals structs.User
-			if err := c.ShouldBind(&loginVals); err != nil {
-				return "", jwt.ErrMissingLoginValues
-			}
-
-			if utils.Login(loginVals) {
-				userID := loginVals.UserName
-
-				// 设置token
-				return &User{
-					UserName: userID,
-				}, nil
-			}
-
-			return nil, jwt.ErrFailedAuthentication
-		},
-		Authorizator: func(data interface{}, c *gin.Context) bool {
-			//用于判断是否有权限
-			if v, ok := data.(*User); ok && v.UserName == "2214839296@qq.com" {
-				return true
-			}
-			//
-			return true
-		},
-		Unauthorized: func(c *gin.Context, code int, message string) {
-			c.JSON(code, gin.H{
-				"auth":    false,
-				"message": "未登录!",
-			})
-		},
-		TokenLookup:   "header: Authorization, query: token, cookie: jwt",
-		TokenHeadName: "Bearer",
-		TimeFunc:      time.Now,
-	})
-
-	if err != nil {
-		log.Fatal("JWT Error:" + err.Error())
-	}
-
-	r.POST("/login", authMiddleware.LoginHandler)
-
-	r.Use(authMiddleware.MiddlewareFunc())
-	{
-
-		r.POST("/auth", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"data": jwt.ExtractClaims(c)["id"],
-			})
-		})
-		h := new(service.HistoryService)
-		r.POST("/saveHistory", func(c *gin.Context) {
-			var history structs.History
-			c.ShouldBindJSON(&history)
-			history.UserName = jwt.ExtractClaims(c)["id"].(string)
-			c.JSON(200, gin.H{
-				"data": h.SaveHistory(history),
-			})
-		})
-
-		r.POST("/deleteHistory", func(c *gin.Context) {
-			var history structs.History
-			c.ShouldBindJSON(&history)
-			history.UserName = jwt.ExtractClaims(c)["id"].(string)
-			c.JSON(200, gin.H{
-				"data": h.Delete(history),
-			})
-		})
-
-		r.POST("/deleteAllHistory", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"data": h.DeleteAll(jwt.ExtractClaims(c)["id"].(string)),
-			})
-		})
-
-		r.GET("/getHistory/:page", func(c *gin.Context) {
-			page, _ := strconv.Atoi(c.Param("page"))
-			c.JSON(200, h.GetHistory(page))
-		})
-
-		f := new(service.FavoriteService)
-		r.POST("/saveFavorite", func(c *gin.Context) {
-			var favorite structs.Favorite
-			c.ShouldBindJSON(&favorite)
-			favorite.UserName = jwt.ExtractClaims(c)["id"].(string)
-			c.JSON(200, gin.H{
-				"data": f.SaveFavorite(favorite),
-			})
-		})
-
-		r.POST("/deleteFavorite", func(c *gin.Context) {
-			var favorite structs.Favorite
-			c.ShouldBindJSON(&favorite)
-			favorite.UserName = jwt.ExtractClaims(c)["id"].(string)
-			c.JSON(200, gin.H{
-				"data": f.Delete(favorite),
-			})
-		})
-
-		r.POST("/deleteAllFavorite", func(c *gin.Context) {
-			userName := jwt.ExtractClaims(c)["id"].(string)
-			c.JSON(200, gin.H{
-				"data": f.DeleteAll(userName),
-			})
-		})
-
-		r.GET("/getFavorite/:page", func(c *gin.Context) {
-			page, _ := strconv.Atoi(c.Param("page"))
-			c.JSON(200, f.GetFavorite(page))
-		})
-	}
 	go func() {
 		gocron.Every(1).Second().Do(taskWithParams)
 		<-gocron.Start()
