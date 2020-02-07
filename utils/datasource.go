@@ -3,8 +3,19 @@ package utils
 import (
 	"../structs"
 	"fmt"
+	"strings"
 	"time"
 )
+
+func Login(user structs.User) bool {
+	engine := GetCon()
+	var users structs.User
+	engine.Id(user.UserName).Get(&users)
+	if strings.EqualFold(user.Password, users.Password) && len(user.Password) > 0 {
+		return true
+	}
+	return false
+}
 
 func GetIndex(page int) []structs.Index {
 	var list []structs.Index
@@ -91,7 +102,7 @@ func SaveOrUpdateIndex(name string, chapter string, url string, order int) struc
 	return index
 }
 
-func SaveChapter(name string, pid string, url string, num int) structs.Chapter {
+func SaveChapter(name string, pid string, url string, num int, webFlag bool) structs.Chapter {
 	var chapter structs.Chapter
 	var chapters []structs.Chapter
 	engine := GetCon()
@@ -102,13 +113,13 @@ func SaveChapter(name string, pid string, url string, num int) structs.Chapter {
 		chapter.Name = name
 		chapter.Path = url
 		chapter.Num = num
+		chapter.Flag = webFlag
 		engine.Insert(&chapter)
 	} else {
 		chapter = chapters[0]
-		chapter.Pid = pid
-		chapter.Name = name
 		chapter.Path = url
-		chapter.Num = num
+		chapter.Flag = webFlag
+		engine.Id(chapters[0].Id).Cols("flag", "path").Update(&chapter)
 	}
 	return chapter
 }

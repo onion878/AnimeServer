@@ -36,6 +36,9 @@ func StartPool() {
 	engine.CreateTables(new(structs.Cookies))
 	engine.CreateTables(new(structs.Index))
 	engine.CreateTables(new(structs.Chapter))
+	engine.CreateTables(new(structs.User))
+	engine.CreateTables(new(structs.History))
+	engine.CreateTables(new(structs.Favorite))
 	connect = engine
 }
 
