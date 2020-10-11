@@ -1,5 +1,5 @@
 FROM golang:1.11.0
-ADD main main
-EXPOSE 8000
+ADD AnimeServer AnimeServer
+EXPOSE 8060
 LABEL name=AnimeServer
-ENTRYPOINT ["./main"]
+ENTRYPOINT ["./AnimeServer"]

@@ -4,11 +4,14 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/tls"
+	"github.com/axgle/mahonia"
 	"github.com/satori/go.uuid"
 	"gopkg.in/gomail.v2"
 	"log"
 	"math/rand"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -105,4 +108,26 @@ func ReadPropertiesFile(filename string) (AppConfigProperties, error) {
 	}
 
 	return config, nil
+}
+
+func GetIntFromString(p string) int {
+	var valid = regexp.MustCompile("[0-9]")
+	list := valid.FindAllStringSubmatch(p, -1)
+	if len(list) > 0 {
+		a := ""
+		for i := 0; i < len(list); i++ {
+			index := list[i][0]
+			a = a + index
+		}
+		d, err := strconv.Atoi(a)
+		if err != nil {
+			return 0
+		}
+		return d
+	}
+	return 1
+}
+
+func Convert2GBK(str string) string {
+	return mahonia.NewEncoder("gbk").ConvertString(str)
 }

@@ -31,6 +31,25 @@ func SearchByName(name string) []structs.Index {
 	return list
 }
 
+func FindByName(name string) []structs.Index {
+	var list []structs.Index
+	engine := GetCon()
+	engine.Where("name = ?", name).Find(&list)
+	return list
+}
+
+func GetNotChapter() []string {
+	var list []string
+	engine := GetCon()
+	res, err := engine.QueryString("select a.name from `index` a left join chapter b on a.id=b.pid where b.id is null")
+	if err == nil {
+		for i := range res {
+			list = append(list, res[i]["name"])
+		}
+	}
+	return list
+}
+
 func GetByName(name string) []structs.Index {
 	var list []structs.Index
 	engine := GetCon()
@@ -52,7 +71,7 @@ func GetCookie() string {
 	return cookie[0].Value
 }
 
-func SaveIndex(name string, chapter string, url string, order int) structs.Index {
+func SaveIndex(name string, chapter string, url string, order int, image string) structs.Index {
 	var index structs.Index
 	engine := GetCon()
 	index.Url = url
@@ -62,6 +81,8 @@ func SaveIndex(name string, chapter string, url string, order int) structs.Index
 	index.Name = name
 	index.Chapter = chapter
 	index.Index = order
+	index.Image = image
+	index.UpdateFlag = true
 	engine.Insert(&index)
 	fmt.Printf("%+v\n", index)
 	return index
@@ -74,7 +95,14 @@ func GetAllIndex() []structs.Index {
 	return indexs
 }
 
-func SaveOrUpdateIndex(name string, chapter string, url string, order int) structs.Index {
+func FindIndexByUpadate(flag bool) []structs.Index {
+	var indexs []structs.Index
+	engine := GetCon()
+	engine.Where("flag = 0").Where("`update_flag`=?", flag).OrderBy("`index` asc").Find(&indexs)
+	return indexs
+}
+
+func SaveOrUpdateIndex(name string, chapter string, url string, order int, image string, flag bool) structs.Index {
 	var index structs.Index
 	var indexs []structs.Index
 	engine := GetCon()
@@ -86,7 +114,9 @@ func SaveOrUpdateIndex(name string, chapter string, url string, order int) struc
 		index.Url = url
 		index.Name = name
 		index.Chapter = chapter
+		index.Image = image
 		index.Index = order
+		index.UpdateFlag = flag
 		engine.Insert(&index)
 		index.Flag = true
 	} else {
@@ -95,18 +125,49 @@ func SaveOrUpdateIndex(name string, chapter string, url string, order int) struc
 		index.Url = url
 		index.Update = time.Now()
 		index.Index = order
-		engine.Update(&index)
+		index.Image = image
+		index.UpdateFlag = flag
+		engine.ID(index.Id).Cols("`update_flag`", "`chapter`", "`url`", "`update`", "`index`").Update(&index)
 		index.Flag = false
 	}
 	fmt.Printf("%+v\n", index)
 	return index
 }
 
+func UpdateIndexInfo(id string, image string, label string, info string, date string) {
+	var index structs.Index
+	engine := GetCon()
+	index.Id = id
+	index.Image = image
+	index.Label = label
+	index.Info = info
+	index.Date = date
+	engine.ID(index.Id).Cols("`info`", "`date`", "`label`").Update(&index)
+}
+
+func UpdateIndexOrder(id string, order int) {
+	var index structs.Index
+	engine := GetCon()
+	index.Update = time.Now()
+	index.Index = order
+	engine.ID(id).Update(&index)
+	fmt.Printf("%+v\n", index)
+}
+
+func UpdateIndexFlag(id string, flag bool) {
+	var index structs.Index
+	engine := GetCon()
+	index.Update = time.Now()
+	index.UpdateFlag = flag
+	engine.ID(id).Cols("`update_flag`").Update(&index)
+	fmt.Printf("%+v\n", index)
+}
+
 func SaveChapter(name string, pid string, url string, num int, webFlag bool) structs.Chapter {
 	var chapter structs.Chapter
 	var chapters []structs.Chapter
 	engine := GetCon()
-	engine.Where("name = ?", name).Find(&chapters)
+	engine.Where("name = ?", name).Where("pid = ?", pid).Find(&chapters)
 	if len(chapters) == 0 {
 		chapter.Id = NewKeyId()
 		chapter.Pid = pid

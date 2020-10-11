@@ -3,15 +3,20 @@ package structs
 import "time"
 
 type Index struct {
-	Id      string    `xorm:"not null pk VARCHAR(40)"`
-	Name    string    `xorm:"not null VARCHAR(100)"`
-	Chapter string    `xorm:"not null VARCHAR(100)"`
-	Total   int       `xorm:"not null int"`
-	Update  time.Time `xorm:"TIMESTAMP"`
-	Index   int       `xorm:"null int"`
-	Url     string    `xorm:"null VARCHAR(100)"`
-	Created time.Time `xorm:"TIMESTAMP created"`
-	Flag    bool
+	Id         string    `xorm:"not null pk VARCHAR(40)"`
+	Name       string    `xorm:"not null VARCHAR(100)"`
+	Image      string    `xorm:"not null VARCHAR(100)"`
+	Chapter    string    `xorm:"text"`
+	Total      int       `xorm:"not null int"`
+	Update     time.Time `xorm:"TIMESTAMP"`
+	Index      int       `xorm:"null int"`
+	Url        string    `xorm:"null VARCHAR(100)"`
+	Info       string    `xorm:"text"`
+	Date       string    `xorm:"null VARCHAR(20)"`
+	Label      string    `xorm:"null VARCHAR(200)"`
+	Created    time.Time `xorm:"TIMESTAMP created"`
+	UpdateFlag bool      `xorm:"bit"`
+	Flag       bool
 }
 
 type Chapter struct {
