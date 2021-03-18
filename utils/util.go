@@ -52,10 +52,7 @@ func RandomString(randLength int, randType string) (result string) {
 
 //获取uuid
 func NewKeyId() string {
-	if id, err := uuid.NewV4(); err == nil {
-		return id.String()
-	}
-	return "创建失败!"
+	return uuid.NewV4().String()
 }
 
 func SendMail(msg string) {

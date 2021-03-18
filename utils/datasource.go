@@ -1,9 +1,9 @@
 package utils
 
 import (
-	"../structs"
 	"fmt"
 	"strings"
+	"structs"
 	"time"
 )
 

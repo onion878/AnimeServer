@@ -1,17 +1,17 @@
 package main
 
 import (
-	"./structs"
-	"./utils"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gocolly/colly"
 	"github.com/jasonlvhit/gocron"
 	"strconv"
 	"strings"
+	"structs"
+	"utils"
 )
 
-const path = "http://www.yhdm.tv"
+const path = "http://www.yhdm.io"
 
 var runing = false
 var identityKey = "id"
