@@ -11,7 +11,7 @@ import (
 	"utils"
 )
 
-const path = "http://www.yhdm.io"
+var path = ""
 
 var runing = false
 var identityKey = "id"
@@ -19,6 +19,8 @@ var identityKey = "id"
 func main() {
 	r := gin.Default()
 	utils.StartPool()
+	props, _ := utils.ReadPropertiesFile("properties")
+	path = props["source"]
 	r.Use(CORSMiddleware())
 	r.GET("/getIndex/:page", func(c *gin.Context) {
 		page, _ := strconv.Atoi(c.Param("page"))
