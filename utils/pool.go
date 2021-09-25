@@ -16,7 +16,7 @@ func StartPool() {
 	if err != nil {
 		fmt.Println("Error while reading properties file")
 	}
-	engine, err := xorm.NewEngine("mysql", props["username"]+":"+props["password"]+"@tcp("+props["url"]+":3306)/"+props["database"])
+	engine, err := xorm.NewEngine("mysql", props["username"]+":"+props["password"]+"@tcp("+props["url"]+":"+props["port"]+")/"+props["database"])
 	if err != nil {
 		fmt.Println(err)
 		return

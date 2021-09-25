@@ -1,5 +1,6 @@
 url=localhost
+port=3307
 database=anime
-username=onion
+username=root
 password=1234
-source=http://www.yhdm.so/
+source=http://www.yhdm.so

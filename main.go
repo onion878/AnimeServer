@@ -14,6 +14,7 @@ import (
 var path = ""
 
 var runing = false
+var runDetail = false
 var identityKey = "id"
 
 func main() {
@@ -103,13 +104,13 @@ func taskWithParams() {
 }
 
 func checkChapter() {
-	if !runing {
-		runing = true
+	if !runDetail && !runing {
+		runDetail = true
 		list := utils.GetNotChapter()
 		for i := range list {
 			getOneSource(list[i])
 		}
-		runing = false
+		runDetail = false
 	}
 }
 
