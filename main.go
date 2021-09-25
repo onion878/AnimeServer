@@ -1,8 +1,6 @@
 package main
 
 import (
-	"./structs"
-	"./utils"
 	"encoding/json"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
@@ -13,6 +11,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"structs"
+	"utils"
 )
 
 const path = "https://anime1.me"
@@ -70,9 +70,10 @@ func main() {
 	})
 
 	go func() {
-		gocron.Every(1).Second().Do(taskWithParams)
+		gocron.Every(5).Second().Do(taskWithParams)
 		<-gocron.Start()
 	}()
+	//getChapterUrl("https://v.anime1.me/watch?v=E4vG8", "罪人2", "3a30343c-4406-43fc-b974-a8813a16c7ca", 2)
 	r.Run(":8060")
 }
 

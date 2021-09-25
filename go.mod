@@ -7,7 +7,7 @@ replace utils v0.0.0 => ./utils
 replace structs v0.0.0 => ./structs
 
 require (
-	github.com/PuerkitoBio/goquery v1.6.1 // indirect
+	github.com/PuerkitoBio/goquery v1.6.1
 	github.com/antchfx/htmlquery v1.2.3 // indirect
 	github.com/antchfx/xmlquery v1.3.5 // indirect
 	github.com/gin-gonic/gin v1.6.3

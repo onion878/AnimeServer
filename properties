@@ -1,5 +1,5 @@
 url=localhost
-port=3307
+port=3306
 database=anime
 username=root
 password=1234
