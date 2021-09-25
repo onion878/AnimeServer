@@ -1,27 +1,34 @@
 package main
 
 import (
+	"./structs"
+	"./utils"
+	"encoding/json"
 	"fmt"
+	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
 	"github.com/gocolly/colly"
 	"github.com/jasonlvhit/gocron"
+	"io"
+	"net/http"
 	"strconv"
 	"strings"
-	"structs"
-	"utils"
 )
 
-var path = ""
+const path = "https://anime1.me"
 
 var runing = false
-var runDetail = false
 var identityKey = "id"
+
+type User struct {
+	UserName  string
+	FirstName string
+	LastName  string
+}
 
 func main() {
 	r := gin.Default()
 	utils.StartPool()
-	props, _ := utils.ReadPropertiesFile("properties")
-	path = props["source"]
 	r.Use(CORSMiddleware())
 	r.GET("/getIndex/:page", func(c *gin.Context) {
 		page, _ := strconv.Atoi(c.Param("page"))
@@ -39,9 +46,6 @@ func main() {
 	r.GET("/getAllSource", func(c *gin.Context) {
 		if !runing {
 			go func() {
-				engine := utils.GetCon()
-				engine.Exec("delete from `chapter`")
-				engine.Exec("delete from `index`")
 				getAllSource()
 			}()
 			c.JSON(200, gin.H{
@@ -66,16 +70,7 @@ func main() {
 	})
 
 	go func() {
-		getAllSource()
-	}()
-
-	go func() {
-		gocron.Every(30).Seconds().Do(taskWithParams)
-		<-gocron.Start()
-	}()
-
-	go func() {
-		gocron.Every(60).Seconds().Do(checkChapter)
+		gocron.Every(1).Second().Do(taskWithParams)
 		<-gocron.Start()
 	}()
 	r.Run(":8060")
@@ -103,33 +98,18 @@ func taskWithParams() {
 	}
 }
 
-func checkChapter() {
-	if !runDetail && !runing {
-		runDetail = true
-		list := utils.GetNotChapter()
-		for i := range list {
-			getOneSource(list[i])
-		}
-		runDetail = false
-	}
-}
-
 func getFirstMenu() {
 	c := colly.NewCollector()
 	flag := false
-	c.OnHTML(".area .topli ul li", func(e *colly.HTMLElement) {
+	c.OnHTML(".entry-content table tbody tr", func(e *colly.HTMLElement) {
 		if !flag {
-			area := e.DOM.Find("span a").Text()
-			if area == "日本" {
-				name := e.DOM.Find("a").Eq(1).Text()
-				chapter := e.DOM.Find("b a").Text()
-				var newRow = new(structs.Index)
-				newRow.Name = name
-				newRow.Chapter = chapter
-				if !runing && utils.JudgeNew(*newRow) {
-					println("获取更新")
-					getNew()
-				}
+			name := e.DOM.Find(".column-1 a").Text()
+			chapter := e.DOM.Find(".column-2").Text()
+			var newRow = new(structs.Index)
+			newRow.Name = name
+			newRow.Chapter = chapter
+			if utils.JudgeNew(*newRow) {
+				getAllSource()
 			}
 		}
 		flag = true
@@ -139,112 +119,31 @@ func getFirstMenu() {
 		r.Headers.Set("cookie", utils.GetCookie())
 		fmt.Println("Visiting", r.URL)
 	})
-	c.Visit(path + "/new")
-}
-
-func getNew() {
-	runing = true
-	c := colly.NewCollector()
-	var data []structs.Index
-	i := 0
-	c.OnHTML(".area .topli ul li", func(e *colly.HTMLElement) {
-		area := e.DOM.Find("span a").Text()
-		if area == "日本" {
-			name := e.DOM.Find("a").Eq(1).Text()
-			href, _ := e.DOM.Find("a").Eq(1).Attr("href")
-			chapter := e.DOM.Find("b a").Text()
-			list := utils.GetByName(name)
-			println("更新资源:" + name)
-			println(e.Index)
-			if list != nil && len(list) > 0 {
-				println("更新资源:" + name)
-				data = append(data, structs.Index{Id: list[0].Id, Name: name, Chapter: chapter, Url: href, Index: i, UpdateFlag: true, Image: list[0].Image})
-				i++
-			} else {
-				data = append(data, structs.Index{Id: "", Name: name, Chapter: chapter, Url: href, Index: i, UpdateFlag: true})
-				i++
-			}
-		}
-		if e.Index == 99 {
-			if data != nil && len(data) > 0 {
-				changeIndex(data)
-			}
-		}
-	})
-
-	c.OnRequest(func(r *colly.Request) {
-		r.Headers.Set("cookie", utils.GetCookie())
-		fmt.Println("Visiting", r.URL)
-	})
-	c.Visit(path + "/new")
-}
-
-func changeIndex(data []structs.Index) {
-	for i := range data {
-		name := data[i].Name
-		chapter := data[i].Chapter
-		href := data[i].Url
-		image := data[i].Image
-		println(data[i].Id)
-		if data[i].Id != "" {
-			utils.DeleteByName(name)
-			utils.SaveOrUpdateIndex(name, chapter, href, i, image, true)
-			getOneSource(name)
-		} else {
-			utils.SaveIndex(name, chapter, href, i, image)
-			getOneSource(name)
-		}
-	}
-	newList := utils.FindIndexByUpadate(true)
-	oldList := utils.FindIndexByUpadate(false)
-	newList = append(newList, oldList...)
-	for i := range newList {
-		utils.UpdateIndexOrder(newList[i].Id, i)
-		utils.UpdateIndexFlag(newList[i].Id, false)
-	}
-	runing = false
+	c.Visit(path)
 }
 
 func getAllSource() {
 	runing = true
+	engine := utils.GetCon()
+	engine.Exec("DROP TABLES IF EXISTS `index`,chapter")
+	engine.CreateTables(new(structs.Cookies))
+	engine.CreateTables(new(structs.Index))
+	engine.CreateTables(new(structs.Chapter))
 	getMenu()
 	getAllIndex()
 	runing = false
 }
 
 func getOneSource(n string) {
-	println("重新获取:" + n)
-	list := utils.FindByName(n)
-	if len(list) > 0 {
-		getChapter(path+list[0].Url, list[0].Id)
-	}
-}
-
-func getMenu() {
 	c := colly.NewCollector()
 	println("获取所有目录")
-	c.OnHTML(".area .fire .lpic ul li", func(e *colly.HTMLElement) {
-		href, _ := e.DOM.Find("h2 a").Attr("href")
-		p := e.Request.URL.Path
-		name := e.DOM.Find("h2 a").Text()
-		chapter := e.DOM.Find("span font").Text()
-		image, _ := e.DOM.Find("a img").Attr("src")
-		i := utils.GetIntFromString(p) - 1
-		list := utils.FindByName(name)
-		if len(list) > 0 {
-			if list[0].Chapter != chapter {
-				utils.SaveOrUpdateIndex(name, chapter, href, i*15+e.Index, image, true)
-			}
-		} else {
-			utils.SaveIndex(name, chapter, href, i*15+e.Index, image)
-		}
-	})
-
-	c.OnHTML(".area .fire .pages a", func(e *colly.HTMLElement) {
-		href, _ := e.DOM.Attr("href")
-		name := e.DOM.Text()
-		if name == "下一页" {
-			c.Visit(path + href)
+	c.OnHTML(".entry-content table tbody tr", func(e *colly.HTMLElement) {
+		href, _ := e.DOM.Find(".column-1 a").Attr("href")
+		name := e.DOM.Find(".column-1 a").Text()
+		chapter := e.DOM.Find(".column-2").Text()
+		if strings.EqualFold(n, name) {
+			index := utils.SaveOrUpdateIndex(name, chapter, href, e.Index)
+			getChapter(path+href, index.Id)
 		}
 	})
 
@@ -253,7 +152,25 @@ func getMenu() {
 		fmt.Println("Visiting", r.URL)
 	})
 
-	c.Visit(path + "/japan")
+	c.Visit(path)
+}
+
+func getMenu() {
+	c := colly.NewCollector()
+	println("获取所有目录")
+	c.OnHTML(".entry-content table tbody tr", func(e *colly.HTMLElement) {
+		href, _ := e.DOM.Find(".column-1 a").Attr("href")
+		name := e.DOM.Find(".column-1 a").Text()
+		chapter := e.DOM.Find(".column-2").Text()
+		utils.SaveIndex(name, chapter, href, e.Index)
+	})
+
+	c.OnRequest(func(r *colly.Request) {
+		r.Headers.Set("cookie", utils.GetCookie())
+		fmt.Println("Visiting", r.URL)
+	})
+
+	c.Visit(path)
 }
 
 func getAllIndex() {
@@ -261,41 +178,22 @@ func getAllIndex() {
 	println("获取详情...")
 	for i := 0; i < len(index); i++ {
 		data := index[i]
-		list := utils.FindByName(data.Name)
-		if len(list) > 0 {
-			if list[0].UpdateFlag {
-				utils.UpdateIndexFlag(data.Id, false)
-				getChapter(path+data.Url, data.Id)
-			}
-		}
+		getChapter(path+data.Url, data.Id)
 	}
 }
 
 func getChapter(url string, pid string) {
 	c := colly.NewCollector()
 	// Find and visit all links
-	c.OnHTML(".area .fire .tabs .main0 .movurl ul", func(e *colly.HTMLElement) {
-		s := e.DOM.Find("li")
+	c.OnHTML("main", func(e *colly.HTMLElement) {
+		s := e.DOM.Find("iframe[src]")
+		d := e.DOM.Find(".entry-title a[href]")
 		for i := 0; i < s.Length(); i++ {
-			src, _ := s.Eq(i).Find("a").Attr("href")
-			name := s.Eq(i).Find("a").Text()
+			src, _ := s.Eq(i).Attr("src")
+			name := d.Eq(i).Text()
 			utils.SaveChapter(name, pid, src, i, true)
 			getChapterUrl(src, name, pid, i)
 		}
-	})
-
-	c.OnHTML(".area .fire", func(e *colly.HTMLElement) {
-		labels := e.DOM.Find(".sinfo span").Eq(2).Find("a")
-		var rows []string
-		for i := 0; i < labels.Length(); i++ {
-			labels.Eq(i).Text()
-			rows = append(rows, labels.Eq(i).Text())
-		}
-		label := strings.Join(rows, ",")
-		image, _ := e.DOM.Find(".thumb img").Attr("src")
-		info := e.DOM.Find(".info").Text()
-		date := e.DOM.Find(".sinfo span").Eq(0).Text()
-		utils.UpdateIndexInfo(pid, image, label, strings.Trim(strings.Replace(info, "\n", "", -1), " "), strings.Replace(date, "上映:", "", -1))
 	})
 
 	c.OnHTML(".nav-previous a[href]", func(e *colly.HTMLElement) {
@@ -311,33 +209,91 @@ func getChapter(url string, pid string) {
 
 func getChapterUrl(url string, name string, pid string, num int) {
 	c := colly.NewCollector(colly.Async(true))
-	c.OnHTML(".play .area .bofang", func(e *colly.HTMLElement) {
-		d, _ := e.DOM.Find("div").Attr("data-vid")
-		p := strings.Replace(d, "$mp4", "", -1)
-		webFlag := strings.HasSuffix(p, ".m3u8") || strings.HasSuffix(p, ".mp4")
-		utils.SaveChapter(name, pid, p, num, !webFlag)
-		c.Visit(p)
-	})
-
+	// Find and visit all links
 	c.OnHTML("body script", func(e *colly.HTMLElement) {
 		data := e.Text
-		start := strings.Index(data, "url:")
-		end := strings.Index(data, ",\n                pic")
+		start := strings.Index(data, "sources:")
+		end := strings.Index(data, ",controls:true")
 		if start > 0 && end > 0 {
-			file := data[start+6 : end-1]
-			utils.SaveChapter(name, pid, file, num, false)
+			s := data[start+8 : end]
+			s = strings.Replace(s, ",label:", `,"label":`, -1)
+			var arr []structs.UrlData
+			_ = json.Unmarshal([]byte(s), &arr)
+			var flag = false
+			for i := 0; i < len(arr); i++ {
+				if arr[i].Default == "true" {
+					utils.SaveChapter(name, pid, arr[i].File, num, false)
+					flag = true
+				}
+			}
+			if !flag {
+				some := 0
+				file := ""
+				for i := 0; i < len(arr); i++ {
+					s := arr[i].Label
+					if len(s) > 0 {
+						hd, _ := strconv.Atoi(s[0 : len(s)-1])
+						if hd > some {
+							file = arr[i].File
+						}
+						some = hd
+					}
+				}
+				if len(file) > 0 {
+					utils.SaveChapter(name, pid, file, num, false)
+				} else {
+					getMpdChapter(e.Request.URL.Query().Get("dash"), name, pid, num)
+				}
+			}
 		} else {
-			// 未发现不处理
+			start := strings.Index(data, `,file:"`)
+			end := strings.Index(data, `",controls:true`)
+			if start > 0 && end > 0 {
+				file := data[start+7 : end]
+				utils.SaveChapter(name, pid, file, num, false)
+			}
 		}
 	})
 
 	c.OnHTML("body", func(e *colly.HTMLElement) {
-		//println(e.Text)
+		println(e.Text)
+	})
+
+	c.OnHTML("video source", func(e *colly.HTMLElement) {
+		file := e.Attr("src")
+		if len(file) > 0 {
+			utils.SaveChapter(name, pid, file, num, false)
+		}
 	})
 
 	c.OnRequest(func(r *colly.Request) {
 		r.Headers.Set("cookie", utils.GetCookie())
 		fmt.Println("Visiting", r.URL)
 	})
-	c.Visit(path + url)
+	c.Visit(url)
+}
+
+// update time: 2018-12-06
+func getMpdChapter(url string, name string, pid string, num int) {
+	r, err := http.Get(url)
+	if err == nil {
+		doc, e := goquery.NewDocumentFromReader(io.Reader(r.Body))
+		if e == nil {
+			var file = ""
+			flag := false
+			p := doc.Find("representation")
+			p.Each(func(i int, s *goquery.Selection) {
+				band, ok := s.Attr("fbqualityclass")
+				if ok && strings.Trim(band, "\n") == "hd" {
+					flag = true
+					file = s.Find("baseurl").Eq(0).Text()
+				}
+			})
+			if !flag {
+				file = p.Eq(0).Find("BaseURL").Eq(0).Text()
+			}
+			utils.SaveChapter(name, pid, file, num, false)
+		}
+	}
+
 }

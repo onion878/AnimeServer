@@ -1,12 +1,11 @@
 package utils
 
 import (
+	"../structs"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
-	"structs"
-	"time"
-	"xorm.io/core"
 )
 
 var connect *xorm.Engine
@@ -16,14 +15,11 @@ func StartPool() {
 	if err != nil {
 		fmt.Println("Error while reading properties file")
 	}
-	engine, err := xorm.NewEngine("mysql", props["username"]+":"+props["password"]+"@tcp("+props["url"]+":"+props["port"]+")/"+props["database"])
+	engine, err := xorm.NewEngine("mysql", props["username"]+":"+props["password"]+"@tcp("+props["url"]+":3306)/"+props["database"]+"?charset=utf8")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	timeZone, _ := time.LoadLocation("Asia/Shanghai")
-	engine.TZLocation = timeZone
-	engine.Charset("UTF-8")
 	//连接测试
 	if err := engine.Ping(); err != nil {
 		fmt.Println(err)
