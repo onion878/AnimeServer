@@ -75,7 +75,7 @@ func main() {
 	}()
 
 	go func() {
-		gocron.Every(60).Seconds().Do(checkChapter)
+		gocron.Every(600).Seconds().Do(checkChapter)
 		<-gocron.Start()
 	}()
 	r.Run(":8060")
